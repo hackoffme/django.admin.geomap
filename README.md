@@ -1,9 +1,14 @@
 # DjangoAdminGeomap library
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vb64/django.admin.geomap/geomap-pep257?label=Pep257&style=plastic)](https://github.com/vb64/django.admin.geomap/actions?query=workflow%3Ageomap-pep257)
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vb64/django.admin.geomap/django3?label=Django%203.2.14%20Python%203.7-3.10&style=plastic)](https://github.com/vb64/django.admin.geomap/actions?query=workflow%3Adjango3)
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vb64/django.admin.geomap/django4?label=Django%204.0.6%20Python%203.8-3.10&style=plastic)](https://github.com/vb64/django.admin.geomap/actions?query=workflow%3Adjango4)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/d565c3a3d78e4e198f35688432a741eb)](https://www.codacy.com/gh/vb64/django.admin.geomap/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=vb64/django.admin.geomap&amp;utm_campaign=Badge_Grade)
-[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d565c3a3d78e4e198f35688432a741eb)](https://www.codacy.com/gh/vb64/django.admin.geomap/dashboard?utm_source=github.com&utm_medium=referral&utm_content=vb64/django.admin.geomap&utm_campaign=Badge_Coverage)
+
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vb64/django.admin.geomap/pep257.yml?label=Pep257&style=plastic&branch=main)](https://github.com/vb64/django.admin.geomap/actions?query=workflow%3Ageomap-pep257)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vb64/django.admin.geomap/django3.yml?label=Django%203.2.25&style=plastic&branch=main)](https://github.com/vb64/django.admin.geomap/actions?query=workflow%3Adjango3)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vb64/django.admin.geomap/django4.yml?label=Django%204.2.16&style=plastic&branch=main)](https://github.com/vb64/django.admin.geomap/actions?query=workflow%3Adjango4)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vb64/django.admin.geomap/django5.yml?label=Django%205.1.1&style=plastic&branch=main)](https://github.com/vb64/django.admin.geomap/actions?query=workflow%3Adjango5)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/d565c3a3d78e4e198f35688432a741eb)](https://app.codacy.com/gh/vb64/django.admin.geomap/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/d565c3a3d78e4e198f35688432a741eb)](https://app.codacy.com/gh/vb64/django.admin.geomap/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/django-admin-geomap?label=pypi%20installs)](https://pypistats.org/packages/django-admin-geomap)
+
+[In Russian](READMEru.md)
 
 The free, open-source DjangoAdminGeomap library is designed to display objects on the map in the Django views and admin site.
 
@@ -18,7 +23,7 @@ If you only need to display objects on the map in the Django admin site, then yo
 It has no additional requirements for the names and data types of fields in the database tables, and there are no installation dependencies.
 
 DjangoAdminGeomap uses the [OpenLayers](https://openlayers.org/) JavaScript framework to display map data.
-The source of the cartographic data is the data of the [OpenStreetMap project](https://www.openstreetmap.org/).
+The source of the cartographic data is the [OpenStreetMap project](https://www.openstreetmap.org/).
 
 ## Installation
 
@@ -26,7 +31,7 @@ The source of the cartographic data is the data of the [OpenStreetMap project](h
 pip install django-admin-geomap
 ```
 
-To connect DjangoAdminGeomap to your project, add `'django_admin_geomap'` to the `INSTALLED_APPS` list  in your `settings.py` file.
+To connect DjangoAdminGeomap to your project, add `'django_admin_geomap'` to the `INSTALLED_APPS` in your `settings.py` file.
 
 ```python
 
@@ -53,14 +58,17 @@ class Location(models.Model):
 
 ```
 
-On the main page of the site and when working with this table in the admin panel, we want to see a map with objects from this table located on it.
+On the main page of the site and when working with this table in the admin panel, we want to see objects from this table located on the map.
 
 ## Main page with a list of objects on the map
 
 To enable the display of `Location` objects on the map, you need to make changes to the model class in the `models.py` file.
 
-Add the `django_admin_geomap.GeoItem` "mixin" class to the inheritance list of the `Location` class and define two properties:` geomap_longitude` and `geomap_latitude`.
+Add the `django_admin_geomap.GeoItem` "mixin" class to the inheritance list of the `Location` class and define two properties: `geomap_longitude` and `geomap_latitude`.
 These properties should return the longitude and latitude of the object as a string.
+
+If at least one of these two properties returns an empty string, then the corresponding object will not be displayed on the map.
+For example, objects that do not have coordinates or some kind of "secret" objects from your database.
 
 ```python
 # models.py
@@ -75,7 +83,7 @@ class Location(models.Model, GeoItem):
 
     @property
     def geomap_latitude(self):
-        return '' if self.lon is None else str(self.lat)
+        return '' if self.lat is None else str(self.lat)
 ```
 
 After making these changes to the definition of the model, you can display a map with objects from the `Location` table in an arbitrary view.
@@ -117,14 +125,15 @@ On the root page of the site, a map with markers in the locations of these objec
 
 The `geomap_context` function accepts additional named arguments to customize the properties of the map.
 
--   map_longitude: map center longitude, default is "0.0"
--   map_latitude: map center latitude, default is "0.0"
--   map_zoom: map zoom level, default is "1"
--   map_height: vertical map size, default is "500px"
+- map_longitude: map center longitude, default is "0.0"
+- map_latitude: map center latitude, default is "0.0"
+- map_zoom: map zoom level, default is "1"
+- auto_zoom: enables autozoom mode (see below), default is "-1" (autozoom mode is disabled)
+- map_height: vertical map size, default is "500px"
 
 ## List of objects on the map in the admin panel
 
-To display a map with objects in the site admin panel in the admin settings file `admin.py`, when registering a model, you need to use the` django_admin_geomap.ModelAdmin` class.
+To display a map with objects in the site admin panel in the admin settings file `admin.py`, when registering a model, you need to use the `django_admin_geomap.ModelAdmin` class.
 
 ```python
 # admin.py
@@ -141,7 +150,7 @@ After making these changes, in the admin panel on the page with a list of `Locat
 
 To display an object on the map in the edit/view form, you must additionally specify the field IDs in the Django form, which contain the longitude and latitude values of the object.
 
-For our `Location` class, the Django admin automatically assigns the IDs` id_lon` and `id_lat` to these form fields. The following changes need to be made to the `admin.py` file.
+For our `Location` class, the Django admin automatically assigns the IDs `id_lon` and `id_lat` to these form fields. The following changes need to be made to the `admin.py` file.
 
 ```python
 # admin.py
@@ -161,6 +170,37 @@ After making these changes, in the admin panel on the page for viewing/editing t
 When editing, you can change the position of an object by dragging its icon across the map with the mouse (you need to move the mouse cursor over the bottom of the icon until a blue dot appears on it).
 
 When adding a new object, its position can be set by clicking on the map. Further, the marker of the new object can be dragged, similar to editing.
+
+## Autozoom mode
+
+By default, this mode is disabled.
+You can enable autozoom mode when displaying objects on the map both in regular views and in the Django admin panel.
+
+In regular Django views, the `geomap_context` function needs to be passed the named argument `auto_zoom`.
+
+```python
+    return render(request, 'home.html', geomap_context(Location.objects.all(), auto_zoom="10"))
+```
+
+In the admin panel class, you need to set the `geomap_autozoom` attribute.
+
+```python
+# admin.py
+from django_admin_geomap import ModelAdmin
+
+class Admin(ModelAdmin):
+    geomap_autozoom = "10"
+```
+
+The autozoom mode works differently depending on the number of objects that you want to display on the map.
+
+If the list of displayed objects is empty, the autozoom mode is disabled.
+
+If the list contains one object, then the map center is set to the coordinates of this object, and the map scale is set to the value of the autozoom parameter (10 for the examples above).
+
+If the list contains more than one object, the program determines the minimum rectangle that contains all the displayed objects.
+The center of the map is set to the coordinates of the center of this rectangle.
+The scale of the map is set in such a way as to contain the given rectangle with some indents along the edges.
 
 ## Additional customization
 
@@ -188,9 +228,9 @@ class Location(models.Model, GeoItem):
 
 When you click on a marker on the map, a pop-up panel is displayed. The HTML code used in this panel can be set by defining three properties on the model class.
 
--   `geomap_popup_common` displayed in regular views
--   `geomap_popup_view` displayed in the admin panel for a user without permission to edit the object
--   `geomap_popup_edit` displayed in the admin panel for a user who has permission to edit
+- `geomap_popup_common` displayed in regular views
+- `geomap_popup_view` displayed in the admin panel for a user without permission to edit the object
+- `geomap_popup_edit` displayed in the admin panel for a user who has permission to edit
 
 By default, all these properties return the string representation of the object.
 
@@ -228,7 +268,7 @@ class Admin(ModelAdmin):
 
 ### Default map zoom level and center of the map when displaying a list of objects in the admin panel
 
-You can change the zoom level and position of the center of the map by setting the properties `geomap_default_longitude`,` geomap_default_latitude` and `geomap_default_zoom` in the class `django_admin_geomap.ModelAdmin`.
+You can change the zoom level and position of the center of the map by setting the properties `geomap_default_longitude`, `geomap_default_latitude` and `geomap_default_zoom` in the class `django_admin_geomap.ModelAdmin`.
 
 By default, the center of the map is located at the point with coordinates "0.0", "0.0" and the scale is "1".
 
@@ -271,15 +311,28 @@ class Admin(ModelAdmin):
     geomap_height = "300px"
 ```
 
+### Show or hide map in list view
+
+By default, the map is shown on the list view and in the detail view.
+To hide the map on the list view, set `geomap_show_map_on_list` property from `django_admin_geomap.ModelAdmin` class to `False`.
+
+```python
+# admin.py
+from django_admin_geomap import ModelAdmin
+
+class Admin(ModelAdmin):
+    geomap_show_map_on_list = False
+```
+
 ## Usage example
 
 You can run an example of using the library on your local host.
 
 On the Windows platform, you must first install the following programs.
 
--   [Python3](https://www.python.org/downloads/release/python-3712/)
--   GNU [Unix Utils](http://unxutils.sourceforge.net/) for operations via makefile
--   [Git for Windows](https://git-scm.com/download/win) to access the source code repository.
+- [Python3](https://www.python.org/downloads/release/python-3810/)
+- GNU [Unix Utils](http://unxutils.sourceforge.net/) for operations via makefile
+- [Git for Windows](https://git-scm.com/download/win) to access the source code repository.
 
 Then clone the repository and run the installation, specifying the path to Python 3.
 

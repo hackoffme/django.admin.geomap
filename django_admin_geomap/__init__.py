@@ -1,4 +1,5 @@
 """Geomap package."""
+from html import escape
 from django.contrib import admin
 
 
@@ -15,6 +16,7 @@ class Key:
     FieldLongitude = 'geomap_field_longitude'
     FieldLatitude = 'geomap_field_latitude'
     MapItems = 'geomap_items'
+    AutoZoom = 'geomap_autozoom'
 
 
 class GeoItem:
@@ -25,7 +27,7 @@ class GeoItem:
     @property
     def geomap_popup_view(self):
         """Html code for display in marker popup at the map for RO users."""
-        return "<strong>{}</strong>".format(str(self))
+        return "<strong>{}</strong>".format(escape(str(self), quote=True))
 
     @property
     def geomap_popup_edit(self):
@@ -53,6 +55,11 @@ class GeoItem:
         raise NotImplementedError("{}.geomap_latitude".format(self.__class__.__name__))
 
 
+def is_special_case(response):
+    """Check DjangoAdmin response for special cases."""
+    return (not hasattr(response, 'context_data')) or ('cl' not in response.context_data)
+
+
 class ModelAdmin(admin.ModelAdmin):
     """Base class for admin model with geomap support."""
 
@@ -62,6 +69,8 @@ class ModelAdmin(admin.ModelAdmin):
     geomap_default_zoom = "1"
     geomap_item_zoom = "13"
     geomap_height = "500px"
+    geomap_autozoom = "-1"
+    geomap_show_map_on_list = True
 
     geomap_field_longitude = ""
     geomap_field_latitude = ""
@@ -78,6 +87,7 @@ class ModelAdmin(admin.ModelAdmin):
           map_longitude=self.geomap_default_longitude,
           map_latitude=self.geomap_default_latitude,
           map_zoom=self.geomap_default_zoom,
+          auto_zoom=self.geomap_autozoom,
           map_height=self.geomap_height
         ))
         context[Key.IsEditor] = self.has_change_permission(request)
@@ -93,6 +103,9 @@ class ModelAdmin(admin.ModelAdmin):
         # Obtain original response from Django
         response = super().changelist_view(request, extra_context=extra_context)
 
+        if (not self.geomap_show_map_on_list) or is_special_case(response):
+            return response
+
         # Obtain final queryset from ChangeList object
         change_list_queryset = response.context_data['cl'].queryset
 
@@ -106,7 +119,7 @@ class ModelAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         """Add data for show item at the map."""
         extra_context = self.set_common(request, extra_context)
-        item = list(self.get_queryset(request).filter(id=int(object_id)))[0]
+        item = list(self.get_queryset(request).filter(pk=object_id))[0]
 
         if item.geomap_longitude and item.geomap_latitude:
             extra_context[Key.MapItems] = [item]
@@ -117,7 +130,7 @@ class ModelAdmin(admin.ModelAdmin):
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
 
     def add_view(self, request, form_url='', extra_context=None):
-        """New antenna data at the map."""
+        """Add new antenna data at the map."""
         return super().add_view(request, form_url, extra_context=self.set_common(request, extra_context))
 
 
@@ -126,6 +139,7 @@ def geomap_context(
   map_longitude="0.0",
   map_latitude="0.0",
   map_zoom="1",
+  auto_zoom="-1",
   map_height="500px"
 ):
     """Fill context with geomap defaults."""
@@ -133,6 +147,7 @@ def geomap_context(
       Key.CenterLongitude: map_longitude,
       Key.CenterLatitude: map_latitude,
       Key.MapZoom: map_zoom,
+      Key.AutoZoom: auto_zoom,
       Key.MapHeight: map_height,
       Key.MapItems: objects or []
     }

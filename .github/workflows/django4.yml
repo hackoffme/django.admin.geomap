@@ -11,17 +11,17 @@ on:
 
 jobs:
 
-  django3:
+  django4:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -38,15 +38,12 @@ jobs:
 
     - name: pylint
       run: |
-        python -m pylint --load-plugins=pylint.extensions.mccabe --max-complexity=10 --init-hook="import sys;sys.path.insert(0, './')" --load-plugins pylint_django --django-settings-module=example.settings --disable=relative-import django_admin_geomap
-        python -m pylint --load-plugins=pylint.extensions.mccabe --max-complexity=10 --init-hook="import sys;sys.path.insert(0, './')" --load-plugins pylint_django --django-settings-module=example.settings --disable=relative-import tests/test
+        python -m pylint django_admin_geomap
+        python -m pylint tests/test
 
     - name: pytest
-      env:
-        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
       run: |
         python manage.py collectstatic --noinput --settings example.settings
         python manage.py makemigrations --settings example.settings example
         python manage.py migrate --settings example.settings
         pytest -c pytest4.ini --cov=django_admin_geomap --cov-report xml --cov-report term:skip-covered --durations=5 tests
-        python-codacy-coverage -r coverage.xml
